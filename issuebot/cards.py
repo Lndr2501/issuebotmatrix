@@ -26,16 +26,17 @@ def message(body: str, card: dict, reply_to: Optional[str] = None) -> dict:
     return content
 
 
-def note(text: str, tone: str = "info", icon: str = "", url: str = "") -> dict:
-    """Hinweis-Karte. `url` zeigt Diddy als Link, sobald note-Karten Links koennen
-    (aeltere Diddy-Versionen ignorieren das Feld; der Link steht dann im body)."""
+def note(text: str, tone: str = "info", icon: str = "", url: str = "", link_label: str = "") -> dict:
+    """Hinweis-Karte. `url` + `linkLabel` zeigt Diddy als Link im Chip (Diddy-PR #195);
+    aeltere Diddy-Versionen ignorieren die Felder, der Link steht dann nur im body."""
     assert tone in ("info", "success", "warning", "error"), tone
-    return {"kind": "note", "text": text, "tone": tone, "icon": icon or None, "url": url or None}
+    return {"kind": "note", "text": text, "tone": tone, "icon": icon or None, "url": url or None,
+            "linkLabel": (link_label or None) if url else None}
 
 
 def created(number: int, title: str, url: str, repo: str, reply_to: Optional[str]) -> dict:
     text = f"Issue #{number} in {repo} angelegt: {title}"
-    return message(f"✅ {text}\n{url}", note(text, "success", "✅", url), reply_to)
+    return message(f"✅ {text}\n{url}", note(text, "success", "✅", url, "Issue öffnen"), reply_to)
 
 
 def error(text: str, reply_to: Optional[str] = None) -> dict:

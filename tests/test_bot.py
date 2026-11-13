@@ -62,6 +62,7 @@ async def test_creates_issue_and_replies_with_card(make):
     card = content[cards.CARD_KEY]
     assert card["kind"] == "note" and card["tone"] == "success"
     assert card["url"] == "https://github.com/Lndr/diddy/issues/1"
+    assert card["linkLabel"] == "Issue öffnen"
     assert "https://github.com/Lndr/diddy/issues/1" in content["body"]
     assert content["m.relates_to"]["m.in_reply_to"]["event_id"] == "$e1"
 
