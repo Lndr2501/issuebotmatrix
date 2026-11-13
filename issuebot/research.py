@@ -385,8 +385,10 @@ class Researcher:
                 raise AIError("KI hat keine Zusammenfassung geliefert")
 
             # Eine waehrend der Recherche bearbeitete Meldung nicht mit der alten Fassung ersetzen.
+            # Nur Titel/Text vergleichen: updated_at aendert sich auch durch Kommentare und Labels
+            # (z. B. eine GitHub Action, die jedes neue Issue kommentiert).
             current = await self.github.get_issue(repo, number)
-            if any(current.get(k) != issue.get(k) for k in ("title", "body", "updated_at")):
+            if any((current.get(k) or "") != (issue.get(k) or "") for k in ("title", "body")):
                 log.info("%s#%s wurde inzwischen bearbeitet; KI-Ergebnis nicht geschrieben", repo, number)
                 return None
             new_title = analysis.title if (self.rewrite_title and analysis.kind

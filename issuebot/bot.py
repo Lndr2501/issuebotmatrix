@@ -96,7 +96,8 @@ class Bot:
         try:
             await asyncio.wait_for(self.researcher.run(repo, number), self.cfg.ai_timeout * 3)
         except Exception as exc:   # noqa: BLE001 - nie den Bot stoeren
-            log.warning("KI-Recherche fuer %s#%s fehlgeschlagen: %s", repo, number, exc)
+            log.warning("KI-Recherche fuer %s#%s fehlgeschlagen: %s", repo, number, exc,
+                        exc_info=True)
 
     def _issue_body(self, room_id: str, sender: str, description: str) -> str:
         parts = [description.strip() or "_Keine Beschreibung._"]

@@ -214,3 +214,33 @@ async def test_keep_title_when_disabled():
     gh = FakeGH()
     await Researcher(ai, gh, rewrite_title=False).run("Lndr/diddy", 5)
     assert gh.updates[0][0] is None
+
+
+class CommentedGH(FakeGH):
+    """Zwischen den Abrufen kommentiert jemand: updated_at aendert sich, Titel/Text nicht."""
+
+    def __init__(self, edit_body=False):
+        super().__init__()
+        self.calls = 0
+        self.edit_body = edit_body
+
+    async def get_issue(self, repo, n):
+        self.calls += 1
+        issue = dict(self.issue, updated_at=f"t{self.calls}")
+        if self.edit_body and self.calls > 1:
+            issue["body"] = "vom Melder ergaenzt"
+        return issue
+
+
+async def test_comment_during_research_does_not_block_update():
+    ai = FakeAI([{"terms": []}, {"type": "bug", "title": "Neuer Titel", "summary": "x"}])
+    gh = CommentedGH()
+    await Researcher(ai, gh).run("Lndr/diddy", 5)
+    assert len(gh.updates) == 1
+
+
+async def test_edited_text_during_research_is_kept():
+    ai = FakeAI([{"terms": []}, {"type": "bug", "title": "Neuer Titel", "summary": "x"}])
+    gh = CommentedGH(edit_body=True)
+    assert await Researcher(ai, gh).run("Lndr/diddy", 5) is None
+    assert gh.updates == []
