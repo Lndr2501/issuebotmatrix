@@ -79,8 +79,9 @@ class Bot:
             return
         self.store.record_issue(event_id, sender, room_id, repo, issue.number, issue.url)
         log.info("Issue %s#%s von %s angelegt", repo, issue.number, sender)
+        shown_repo = "" if repo == cfg.repos[cfg.default_repo_key] else repo
         await self.matrix.send(room_id, cards.created(
-            issue.number, issue.title, issue.url, repo, event_id))
+            issue.number, issue.title, issue.url, shown_repo, event_id))
 
     def _issue_body(self, room_id: str, sender: str, description: str) -> str:
         parts = [description.strip() or "_Keine Beschreibung._"]

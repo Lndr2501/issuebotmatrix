@@ -34,8 +34,16 @@ def note(text: str, tone: str = "info", icon: str = "", url: str = "", link_labe
             "linkLabel": (link_label or None) if url else None}
 
 
-def created(number: int, title: str, url: str, repo: str, reply_to: Optional[str]) -> dict:
-    text = f"Issue #{number} in {repo} angelegt: {title}"
+def _short(text: str, limit: int = 50) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[:limit - 1].rstrip() + "…"
+
+
+def created(number: int, title: str, url: str, repo: str = "", reply_to: Optional[str] = None) -> dict:
+    """Kurzer Chip "#12 angelegt: Titel" mit Knopf zum Issue. `repo` nur angeben, wenn es nicht
+    das Standard-Repo ist."""
+    where = f" in {repo.split('/')[-1]}" if repo else ""
+    text = f"#{number} angelegt{where}: {_short(title)}"
     return message(f"✅ {text}\n{url}", note(text, "success", "✅", url, "Issue öffnen"), reply_to)
 
 

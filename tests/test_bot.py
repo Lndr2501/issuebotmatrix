@@ -63,6 +63,7 @@ async def test_creates_issue_and_replies_with_card(make):
     assert card["kind"] == "note" and card["tone"] == "success"
     assert card["url"] == "https://github.com/Lndr/diddy/issues/1"
     assert card["linkLabel"] == "Issue öffnen"
+    assert card["text"] == "#1 angelegt: App stürzt ab"
     assert "https://github.com/Lndr/diddy/issues/1" in content["body"]
     assert content["m.relates_to"]["m.in_reply_to"]["event_id"] == "$e1"
 
@@ -71,6 +72,7 @@ async def test_repo_prefix_and_idea_label(make):
     bot, m, g = make()
     await bot.on_text("!r", "@a:example.org", "$e1", "!idee musik: Lautstärke merken", now_ms())
     assert g.calls[0][0] == "Lndr/musik" and g.calls[0][3] == ["matrix", "enhancement"]
+    assert m.sent[0][1][cards.CARD_KEY]["text"] == "#1 angelegt in musik: Lautstärke merken"
 
 
 async def test_same_event_only_once(make):
