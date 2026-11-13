@@ -135,7 +135,11 @@ class Matrix:
 
     # ------------------------------------------------------------------ Events
     async def _event_cb(self, room: nio.MatrixRoom, event) -> None:
-        if getattr(event, "sender", None) == self.me:
+        if getattr(event, "sender", None) == self.me and not isinstance(event, nio.PowerLevelsEvent):
+            return
+        if isinstance(event, nio.PowerLevelsEvent):
+            # Rechte geaendert (z. B. Bot zum Moderator gemacht): Befehlsliste/Profil neu versuchen
+            self._announced.discard(room.room_id)
             return
         if isinstance(event, nio.RoomMessageText):
             if self.on_text:

@@ -42,8 +42,7 @@ async def amain() -> int:
     try:
         await matrix.login()
         await matrix.first_sync()
-        log.info("Bereit. Räume: %d, Ziel-Repos: %s", len(matrix.client.rooms),
-                 ", ".join(f"{k}={v}" for k, v in cfg.repos.items()))
+        log.info("Bereit. Ziel-Repos: %s", ", ".join(f"{k}={v}" for k, v in cfg.repos.items()))
         sync = asyncio.create_task(matrix.run())
         waiter = asyncio.create_task(stop.wait())
         done, _ = await asyncio.wait({sync, waiter}, return_when=asyncio.FIRST_COMPLETED)
