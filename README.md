@@ -53,8 +53,26 @@ bereitet der Bot jedes neue Issue im Hintergrund auf. Die Chat-Antwort kommt tro
    ins Issue. Codestellen sind Permalinks auf den Commit, GitHub zeigt sie als Code-Ausschnitt.
    Die Originalmeldung bleibt aufklappbar darunter.
 
-Kein Tool-Calling nötig, zwei normale Chat-Anfragen. Ohne JSON-Modus geht es auch. Es läuft
-immer nur eine Recherche gleichzeitig (schont die GPU). Fehler landen nur im Log.
+Kein Tool-Calling nötig: zwei Chat-Anfragen über **`/chat/completions` mit `stream: true`**.
+Normale JSON-Antworten werden ebenfalls akzeptiert. Bei unbrauchbarem JSON gibt es genau einen
+zweiten Versuch ohne JSON-Zwang; HTTP-/Verbindungsfehler werden nicht blind wiederholt.
+
+- `AI_REASONING`: leer = kein `reasoning_effort` senden; sonst `none`, `low`, `medium`, `high`
+  (weitere Stufen je nach Anbieter). Suchbegriffe nutzen `low`, die Aufbereitung die eingestellte
+  Stufe. `none` lässt das Denken für beide Schritte ausgeschaltet.
+- `AI_MAX_TOKENS=12000`: Ausgabe inklusive Denk-Tokens. `AI_CONTEXT_CHARS=24000` begrenzt den
+  gesendeten Code, nicht das Kontextfenster des Modells.
+- Die KI bekommt zusätzlich Projektbeschreibung und README-Anfang. Knappe Wünsche sollen nicht
+  zu erfundenen Fehlern werden; bei unklarer Einordnung bleibt der Originaltitel erhalten.
+- Code-Verweise werden auf tatsächlich gezeigte Zeilen geprüft. Wird das Issue während der
+  Recherche bearbeitet, verwirft der Bot das Ergebnis statt die Bearbeitung zu überschreiben.
+
+Es läuft immer nur eine Recherche gleichzeitig. Fehler landen nur im Log; das angelegte Issue
+bleibt dann unverändert. Recherchen sind Hintergrundaufgaben im Speicher: nach einem Neustart
+werden unterbrochene Aufgaben nicht automatisch nachgeholt.
+
+Datenschutz: Issue-Text, Repository-Beschreibung, README-Auszug und Code-Ausschnitte gehen an den
+konfigurierten KI-Anbieter. Die Matrix-Melderzeile wird vor dem Senden entfernt.
 
 ## Sicherheit und Datenschutz
 

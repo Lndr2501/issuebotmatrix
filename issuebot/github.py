@@ -88,10 +88,13 @@ class GitHub:
 
     async def head_sha(self, repo: str) -> str:
         """Commit-SHA des Standard-Branches."""
-        info = await self._request("GET", f"/repos/{repo}")
+        info = await self.repo_info(repo)
         branch = info.get("default_branch") or "main"
         data = await self._request("GET", f"/repos/{repo}/commits/{branch}")
         return str(data["sha"])
+
+    async def repo_info(self, repo: str) -> dict:
+        return await self._request("GET", f"/repos/{repo}")
 
     async def tarball(self, repo: str, sha: str) -> bytes:
         return await self._request("GET", f"/repos/{repo}/tarball/{sha}", raw=True, timeout=300)

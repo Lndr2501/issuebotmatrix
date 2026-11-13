@@ -98,8 +98,10 @@ class CodeIndex:
             score *= 1 + 0.5 * (len(found) - 1)              # mehrere Begriffe in einer Datei
             if any(h in path.lower() for h in hints):
                 score *= 2
-            if path.endswith((".md", ".txt")) or "/test" in path or path.startswith("test"):
-                score *= 0.6                                  # Doku/Tests nach hinten
+            lower = path.lower()
+            if (lower.endswith((".md", ".txt")) or "/test" in lower or lower.startswith("test")
+                    or "/tools/" in lower or ".test." in lower or ".spec." in lower):
+                score *= 0.6                                  # Doku/Tests/Hilfsprogramme nach hinten
             lines = sorted({ln for ls in found.values() for ln in ls})
             hits.append(Hit(path, score, lines, sorted(found)))
         hits.sort(key=lambda h: -h.score)
@@ -109,25 +111,35 @@ class CodeIndex:
         """Ausschnitte mit Zeilennummern um die Treffer, bis das Zeichenbudget voll ist."""
         out: list[str] = []
         used = 0
-        for h in hits:
-            lines = self.files[h.path]
-            windows = _windows(h.lines, context, len(lines))[:3]
-            for a, b in windows:
-                body = "\n".join(f"{i:>5}| {lines[i - 1][:240]}" for i in range(a, b + 1))
-                block = f"### {h.path} (Zeilen {a}-{b})\n{body}\n"
-                if used + len(block) > budget_chars:
-                    return "\n".join(out)
-                out.append(block)
-                used += len(block)
+        windows = {h.path: _windows(h.lines, context, len(self.files[h.path]))[:3] for h in hits}
+        # Erst jede Datei zeigen, dann weitere Fenster. Sonst verdraengt die erste grosse
+        # Datei andere Plattformen vollstaendig aus dem Kontext.
+        for round_no in range(3):
+            for h in hits:
+                if round_no >= len(windows[h.path]):
+                    continue
+                a, b = windows[h.path][round_no]
+                remaining = budget_chars - used - (1 if out else 0)
+                quota = min(remaining, budget_chars // max(1, len(hits))) if round_no == 0 else remaining
+                lines = self.files[h.path]
+                while b >= a:
+                    body = "\n".join(f"{i:>5}| {lines[i - 1][:240]}" for i in range(a, b + 1))
+                    block = f"### {h.path} (Zeilen {a}-{b})\n{body}\n"
+                    if len(block) <= quota:
+                        used += len(block) + (1 if out else 0)
+                        out.append(block)
+                        break
+                    b -= 1
         return "\n".join(out)
 
     def valid_range(self, path: str, start: int, end: int, max_span: int = 80):
         """Pruefen und begrenzen, was die KI als Codestelle nennt. None, wenn es die Datei nicht gibt."""
         lines = self.files.get(path)
-        if lines is None or not isinstance(start, int) or not isinstance(end, int):
+        if not lines or not isinstance(start, int) or not isinstance(end, int):
             return None
         n = len(lines)
-        start = max(1, min(start, n))
+        if not 1 <= start <= n or end < start:
+            return None
         end = max(start, min(end, n, start + max_span))
         return start, end
 
@@ -164,4 +176,4 @@ def _windows(lines: list[int], context: int, n: int) -> list[tuple[int, int]]:
             wins.append([a, b])
     # die Fenster mit den meisten Treffern zuerst
     wins.sort(key=lambda w: -sum(1 for ln in lines if w[0] <= ln <= w[1]))
-    return [(a, min(b, a + 60)) for a, b in wins]
+    return [(a, min(b, a + 39)) for a, b in wins]

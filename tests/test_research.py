@@ -52,6 +52,25 @@ def test_valid_range():
     assert idx.valid_range("cinny/src/app/BotCard.tsx", 10, 13) == (10, 13)
     assert idx.valid_range("cinny/src/app/BotCard.tsx", 40, 999) == (40, 43)
     assert idx.valid_range("gibts/nicht.ts", 1, 2) is None
+    assert idx.valid_range("cinny/src/app/BotCard.tsx", 999, 1000) is None
+    assert CodeIndex({"empty.py": []}).valid_range("empty.py", 1, 1) is None
+
+
+def test_snippet_budget_covers_multiple_platforms_and_limits_windows():
+    idx = CodeIndex({f"{platform}/main.ts": ["const preview = '" + "x" * 100 + "';"] * 100
+                     for platform in ("desktop", "ios", "android", "web")})
+    snippets = idx.snippets(idx.search(["preview"]), 2500)
+    assert len(snippets) <= 2500
+    for platform in ("desktop", "ios", "android", "web"):
+        assert f"### {platform}/main.ts " in snippets
+    assert idx.snippets(idx.search(["preview"]), 0) == ""
+    import re
+    assert all(int(b) - int(a) < 40 for a, b in re.findall(r"Zeilen (\d+)-(\d+)", snippets))
+
+
+def test_search_penalizes_tools_compared_with_runtime_code():
+    idx = CodeIndex({"ios/Tools/check/main.swift": ["preview"], "ios/Diddy/UI/Preview.swift": ["preview"]})
+    assert idx.search(["preview"])[0].path == "ios/Diddy/UI/Preview.swift"
 
 
 def test_parse_json_reply_tolerates_think_and_fences():
@@ -93,7 +112,7 @@ class FakeAI:
         self.replies = list(replies)
         self.prompts = []
 
-    async def chat_json(self, system, user):
+    async def chat_json(self, system, user, reasoning=None):
         self.prompts.append(user)
         return self.replies.pop(0)
 
@@ -110,6 +129,9 @@ class FakeGH:
     async def head_sha(self, repo):
         return "abc1234def"
 
+    async def repo_info(self, repo):
+        return {"description": "Matrix chat client"}
+
     async def tarball(self, repo, sha):
         self.tarballs += 1
         return make_tar()
@@ -120,8 +142,8 @@ class FakeGH:
 
 async def test_researcher_full_flow():
     ai = FakeAI([
-        {"terms": ["pausePlayback", "paused"], "paths": ["cinny/src"]},
-        {"title": "Bot-Karte bleibt nach Pause auf „Spielt“", "summary": "Die Karte wechselt nicht.",
+        {"meaning": "Karte bleibt auf Spielt", "terms": ["pausePlayback", "paused"], "paths": ["cinny/src"]},
+        {"type": "bug", "title": "Bot-Karte bleibt nach Pause auf „Spielt“", "summary": "Die Karte wechselt nicht.",
          "code": [{"path": "cinny/src/app/BotCard.tsx", "start": 10, "end": 13, "why": "setzt state"}]},
     ])
     gh = FakeGH()
@@ -131,7 +153,9 @@ async def test_researcher_full_flow():
     assert title == "Bot-Karte bleibt nach Pause auf „Spielt“"
     assert "#L10-L13" in body and "Karte pausiert nicht" in body
     assert "   10| function pausePlayback" in ai.prompts[1]          # Code ging an die KI
+    assert "Vorab-Deutung (pruefen!): Karte bleibt auf Spielt" in ai.prompts[1]
     assert "Gemeldet über Matrix" not in ai.prompts[0]              # Fusszeile nicht
+    assert "Beschreibung: Matrix chat client" in ai.prompts[0]      # Projekt-Kontext
 
 
 async def test_researcher_skips_done_issue_and_caches_index():
@@ -141,6 +165,48 @@ async def test_researcher_skips_done_issue_and_caches_index():
     await r.index_for("Lndr/diddy")
     await r.index_for("Lndr/diddy")
     assert gh.tarballs == 1
+
+
+def test_code_must_be_in_shown_snippets_and_not_clamped():
+    idx = CodeIndex.from_tarball(make_tar())
+    snippets = "### cinny/src/app/BotCard.tsx (Zeilen 10-13)\n"
+    a = check_analysis({"summary": "x", "code": [
+        {"path": "cinny/src/app/BotCard.tsx", "start": 10, "end": 13},
+        {"path": "cinny/src/app/BotCard.tsx", "start": 14, "end": 16},
+        {"path": "cinny/src/app/BotCard.tsx", "start": 999, "end": 1000},
+        {"path": "cinny/src/app/other.ts", "start": 1, "end": 1},
+    ]}, idx, snippets)
+    assert len(a.code) == 1 and a.code[0]["start"] == 10
+    assert check_analysis({"code": {"wrong": "shape"}}, idx).code == []
+    assert check_analysis({"code": [{"path": "cinny/src/app/BotCard.tsx", "start": 1, "end": 43}]}, idx).code == []
+
+
+async def test_researcher_preserves_concurrent_user_edit():
+    gh = FakeGH()
+
+    class EditingAI(FakeAI):
+        async def chat_json(self, system, user, reasoning=None):
+            reply = await super().chat_json(system, user, reasoning)
+            gh.issue = {**gh.issue, "body": "Vom Menschen inzwischen bearbeitet"}
+            return reply
+
+    ai = EditingAI([{"terms": []}, {"title": "Neuer Titel", "summary": "x"}])
+    assert await Researcher(ai, gh).run("Lndr/diddy", 5) is None
+    assert gh.updates == []
+
+
+def test_feature_kind_is_rendered_and_unknown_kind_is_dropped():
+    idx = CodeIndex.from_tarball(make_tar())
+    a = check_analysis({"type": "feature", "summary": "Wunsch"}, idx)
+    assert "✨ Wunsch" in render_body(a, "Lndr/diddy", "abc", "Alt", "Text", "qwen")
+    assert check_analysis({"type": "nonsense"}, idx).kind == ""
+
+
+async def test_unclear_analysis_keeps_original_title():
+    ai = FakeAI([{"terms": []}, {"type": "unklar", "title": "Spekulativer neuer Titel", "summary": "Unklar"}])
+    gh = FakeGH()
+    await Researcher(ai, gh).run("Lndr/diddy", 5)
+    assert gh.updates[0][0] is None
 
 
 async def test_keep_title_when_disabled():

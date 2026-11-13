@@ -73,6 +73,8 @@ class Config:
     ai_timeout: int = 300
     ai_context_chars: int = 24_000
     ai_rewrite_title: bool = True
+    ai_reasoning: str = ""
+    ai_max_tokens: int = 12_000
 
     data_dir: str = "/data"
     log_level: str = "INFO"
@@ -142,6 +144,8 @@ class Config:
             ai_timeout=int(e.get("AI_TIMEOUT", "300") or 300),
             ai_context_chars=int(e.get("AI_CONTEXT_CHARS", "24000") or 24000),
             ai_rewrite_title=_bool(e.get("AI_REWRITE_TITLE"), True),
+            ai_reasoning=e.get("AI_REASONING", "").strip().lower(),
+            ai_max_tokens=int(e.get("AI_MAX_TOKENS", "12000") or 12000),
             data_dir=e.get("DATA_DIR", "/data").strip() or "/data",
             log_level=e.get("LOG_LEVEL", "INFO").strip() or "INFO",
         )

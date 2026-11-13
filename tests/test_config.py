@@ -25,6 +25,15 @@ def test_from_env_defaults():
     assert cfg.server_name == "example.org"
 
 
+def test_ai_settings_and_output_budget():
+    cfg = Config.from_env({**BASE, "AI_BASE_URL": "https://proxy.example/v1/", "AI_MODEL": "model",
+                           "AI_REASONING": "MEDIUM", "AI_MAX_TOKENS": "12000"})
+    assert cfg.ai_base_url == "https://proxy.example/v1"
+    assert cfg.ai_reasoning == "medium" and cfg.ai_max_tokens == 12000
+    with pytest.raises(ConfigError, match="AI_MODEL"):
+        Config.from_env({**BASE, "AI_BASE_URL": "https://proxy.example/v1"})
+
+
 def test_missing_values():
     with pytest.raises(ConfigError):
         Config.from_env({**BASE, "GITHUB_TOKEN": ""})
