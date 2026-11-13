@@ -40,6 +40,22 @@ Aliase: `!ticket`, `!problem`, `!fehler`, `!feature`, `!wunsch`, `!idea`.
 4. Bot in den Raum einladen. Für die Befehlsvorschläge in Diddy braucht er **Moderator** (Stufe 50);
    ohne geht alles andere trotzdem.
 
+## KI-Recherche (optional)
+
+Mit `AI_BASE_URL` und `AI_MODEL` (jede OpenAI-kompatible API: Ollama, vLLM, LM Studio, OpenAI …)
+bereitet der Bot jedes neue Issue im Hintergrund auf. Die Chat-Antwort kommt trotzdem sofort.
+
+1. Die KI liest das Issue und nennt Suchbegriffe (Funktionsnamen, UI-Texte, Dateinamen).
+2. Der Bot lädt den aktuellen Stand des Repos (Tarball, im Speicher, ~3 s für Diddy) und sucht.
+3. Die KI bekommt die Fundstellen mit Zeilennummern und schreibt: präziser Titel, Zusammenfassung,
+   Schritte/Erwartet/Tatsächlich, **relevante Codestellen**, Hinweise für die Umsetzung, offene Fragen.
+4. Der Bot prüft jede Codestelle gegen den echten Code (erfundene fliegen raus) und schreibt alles
+   ins Issue. Codestellen sind Permalinks auf den Commit, GitHub zeigt sie als Code-Ausschnitt.
+   Die Originalmeldung bleibt aufklappbar darunter.
+
+Kein Tool-Calling nötig, zwei normale Chat-Anfragen. Ohne JSON-Modus geht es auch. Es läuft
+immer nur eine Recherche gleichzeitig (schont die GPU). Fehler landen nur im Log.
+
 ## Sicherheit und Datenschutz
 
 - Einladungen nimmt der Bot nur von Leuten auf **seinem eigenen Server** an (`INVITE_SERVERS`
@@ -62,4 +78,5 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 
 Aufbau: `parse.py` (Titel/Beschreibung trennen), `bot.py` (Logik), `github.py` (REST),
 `cards.py` (Diddy-Karten, Protokoll: `docs/bot-cards.md` im Diddy-Repo), `matrix.py` (nio),
+`research.py` + `codesearch.py` (KI-Recherche),
 `store.py` (SQLite).

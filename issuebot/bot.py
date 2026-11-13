@@ -1,6 +1,7 @@
 """Bot-Logik: Chat-Befehl -> GitHub-Issue -> Antwortkarte. Ohne nio testbar (Matrix wird uebergeben)."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Optional, Protocol
@@ -20,12 +21,15 @@ class MatrixLike(Protocol):
 
 
 class Bot:
-    def __init__(self, cfg: Config, matrix: MatrixLike, github: GitHub, store: Store):
+    def __init__(self, cfg: Config, matrix: MatrixLike, github: GitHub, store: Store,
+                 researcher=None):
         self.cfg = cfg
         self.matrix = matrix
         self.github = github
         self.store = store
+        self.researcher = researcher      # research.Researcher oder None (KI aus)
         self.started_ms = int(time.time() * 1000)
+        self._tasks: set[asyncio.Task] = set()
 
     # ------------------------------------------------------------------ Eingang
     async def on_text(self, room_id: str, sender: str, event_id: str, body: str,
@@ -79,9 +83,20 @@ class Bot:
             return
         self.store.record_issue(event_id, sender, room_id, repo, issue.number, issue.url)
         log.info("Issue %s#%s von %s angelegt", repo, issue.number, sender)
+        if self.researcher is not None:
+            task = asyncio.create_task(self._research(repo, issue.number))
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
         shown_repo = "" if repo == cfg.repos[cfg.default_repo_key] else repo
         await self.matrix.send(room_id, cards.created(
             issue.number, issue.title, issue.url, shown_repo, event_id))
+
+    async def _research(self, repo: str, number: int) -> None:
+        """Im Hintergrund: KI recherchiert und bereitet das Issue auf. Fehler nur ins Log."""
+        try:
+            await asyncio.wait_for(self.researcher.run(repo, number), self.cfg.ai_timeout * 3)
+        except Exception as exc:   # noqa: BLE001 - nie den Bot stoeren
+            log.warning("KI-Recherche fuer %s#%s fehlgeschlagen: %s", repo, number, exc)
 
     def _issue_body(self, room_id: str, sender: str, description: str) -> str:
         parts = [description.strip() or "_Keine Beschreibung._"]

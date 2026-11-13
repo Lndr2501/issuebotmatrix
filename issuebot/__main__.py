@@ -31,7 +31,14 @@ async def amain() -> int:
     store = Store(cfg.db_path)
     store.prune()
     matrix = Matrix(cfg)
-    bot = Bot(cfg, matrix, GitHub(cfg.github_token, api=cfg.github_api), store)
+    github = GitHub(cfg.github_token, api=cfg.github_api)
+    researcher = None
+    if cfg.ai_base_url:
+        from .research import ChatAI, Researcher
+        researcher = Researcher(
+            ChatAI(cfg.ai_base_url, cfg.ai_model, cfg.ai_api_key, timeout=cfg.ai_timeout),
+            github, context_chars=cfg.ai_context_chars, rewrite_title=cfg.ai_rewrite_title)
+    bot = Bot(cfg, matrix, github, store, researcher)
     matrix.on_text = bot.on_text
 
     stop = asyncio.Event()
@@ -43,6 +50,7 @@ async def amain() -> int:
         await matrix.login()
         await matrix.first_sync()
         log.info("Bereit. Ziel-Repos: %s", ", ".join(f"{k}={v}" for k, v in cfg.repos.items()))
+        log.info("KI-Recherche: %s", f"{cfg.ai_model} @ {cfg.ai_base_url}" if researcher else "aus")
         sync = asyncio.create_task(matrix.run())
         waiter = asyncio.create_task(stop.wait())
         done, _ = await asyncio.wait({sync, waiter}, return_when=asyncio.FIRST_COMPLETED)

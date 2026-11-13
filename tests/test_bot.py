@@ -133,3 +133,21 @@ async def test_reporter_off(make):
 
 def test_md_escape():
     assert _md_escape("[a](b) @c <img>") == "\\[a\\]\\(b\\) \\@c \\<img\\>"
+
+
+class FakeResearcher:
+    def __init__(self):
+        self.calls = []
+
+    async def run(self, repo, number):
+        self.calls.append((repo, number))
+
+
+async def test_research_starts_in_background(make, tmp_path):
+    import asyncio
+    bot, m, g = make()
+    bot.researcher = FakeResearcher()
+    await bot.on_text("!r", "@a:x", "$e", "!issue Titel", now_ms())
+    assert m.sent                                   # Antwort kommt sofort
+    await asyncio.gather(*bot._tasks)
+    assert bot.researcher.calls == [("Lndr/diddy", 1)]

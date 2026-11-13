@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Optional
 
 import aiohttp
 
@@ -68,3 +69,38 @@ class GitHub:
         if status == 422:
             raise GitHubError("GitHub hat das Issue abgelehnt (Titel/Labels prüfen).")
         raise GitHubError(f"GitHub-Fehler (HTTP {status}).")
+
+    # ------------------------------------------------------------------ fuer die KI-Recherche
+    async def _request(self, method: str, path: str, *, json_body: Optional[dict] = None,
+                       raw: bool = False, timeout: Optional[float] = None):
+        url = f"{self._api}{path}"
+        tmo = aiohttp.ClientTimeout(total=timeout) if timeout else self._timeout
+        try:
+            async with aiohttp.ClientSession(timeout=tmo) as s:
+                async with s.request(method, url, json=json_body, headers=self._headers()) as r:
+                    data = await (r.read() if raw else r.json(content_type=None))
+                    if r.status >= 300:
+                        msg = data.get("message", "") if isinstance(data, dict) else ""
+                        raise GitHubError(f"GitHub {method} {path}: HTTP {r.status} {msg}".strip())
+                    return data
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            raise GitHubError(f"GitHub nicht erreichbar ({method} {path})") from exc
+
+    async def head_sha(self, repo: str) -> str:
+        """Commit-SHA des Standard-Branches."""
+        info = await self._request("GET", f"/repos/{repo}")
+        branch = info.get("default_branch") or "main"
+        data = await self._request("GET", f"/repos/{repo}/commits/{branch}")
+        return str(data["sha"])
+
+    async def tarball(self, repo: str, sha: str) -> bytes:
+        return await self._request("GET", f"/repos/{repo}/tarball/{sha}", raw=True, timeout=300)
+
+    async def update_issue(self, repo: str, number: int, *, title: Optional[str] = None,
+                           body: Optional[str] = None) -> None:
+        payload = {k: v for k, v in (("title", title), ("body", body)) if v}
+        if payload:
+            await self._request("PATCH", f"/repos/{repo}/issues/{number}", json_body=payload)
+
+    async def get_issue(self, repo: str, number: int) -> dict:
+        return await self._request("GET", f"/repos/{repo}/issues/{number}")

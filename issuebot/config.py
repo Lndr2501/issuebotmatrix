@@ -66,6 +66,14 @@ class Config:
     rate_count: int = 5
     rate_seconds: int = 600
 
+    # KI-Recherche (leer = aus)
+    ai_base_url: str = ""
+    ai_model: str = ""
+    ai_api_key: str = ""
+    ai_timeout: int = 300
+    ai_context_chars: int = 24_000
+    ai_rewrite_title: bool = True
+
     data_dir: str = "/data"
     log_level: str = "INFO"
 
@@ -128,9 +136,17 @@ class Config:
             invite_servers=_list(e.get("INVITE_SERVERS")),
             rate_count=int(m.group(1)),
             rate_seconds=int(m.group(2)),
+            ai_base_url=e.get("AI_BASE_URL", "").strip().rstrip("/"),
+            ai_model=e.get("AI_MODEL", "").strip(),
+            ai_api_key=e.get("AI_API_KEY", "").strip(),
+            ai_timeout=int(e.get("AI_TIMEOUT", "300") or 300),
+            ai_context_chars=int(e.get("AI_CONTEXT_CHARS", "24000") or 24000),
+            ai_rewrite_title=_bool(e.get("AI_REWRITE_TITLE"), True),
             data_dir=e.get("DATA_DIR", "/data").strip() or "/data",
             log_level=e.get("LOG_LEVEL", "INFO").strip() or "INFO",
         )
         if not cfg.repos:
             raise ConfigError("ISSUE_REPOS ist leer")
+        if cfg.ai_base_url and not cfg.ai_model:
+            raise ConfigError("AI_MODEL fehlt (AI_BASE_URL ist gesetzt)")
         return cfg
