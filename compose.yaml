@@ -1,0 +1,15 @@
+name: issuebot
+
+services:
+  issuebot:
+    build: .
+    image: issuebotmatrix:latest
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Matrix-Geraet (E2EE-Schluessel) und Liste bearbeiteter Nachrichten.
+      # "compose down -v" loescht das: danach ist der Bot ein neues Geraet.
+      - data:/data
+
+volumes:
+  data:
