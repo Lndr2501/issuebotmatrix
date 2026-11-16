@@ -94,7 +94,11 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 .venv/bin/python -m pytest -q
 ```
 
-Aufbau: `parse.py` (Titel/Beschreibung trennen), `bot.py` (Logik), `github.py` (REST),
-`cards.py` (Diddy-Karten, Protokoll: `docs/bot-cards.md` im Diddy-Repo), `matrix.py` (nio),
-`research.py` + `codesearch.py` (KI-Recherche),
-`store.py` (SQLite).
+Aufbau: `parse.py` (Titel/Beschreibung trennen), `bot.py` (Befehle und Logik auf der Bot-Library
+[diddybot](https://github.com/Lndr2501/diddy/tree/main/sdk/python): Matrix, E2EE, Einladungen, Diddy-Karten,
+Befehlsvorschläge und Bot-Profil kommen von dort), `github.py` (REST), `research.py` + `codesearch.py`
+(KI-Recherche), `store.py` (SQLite). Tests ohne Server: `diddybot.testing.TestClient`; Ende-zu-Ende gegen einen
+Synapse: `DIDDY_TEST_HOMESERVER=http://127.0.0.1:8008 pytest tests/test_integration.py`.
+
+Update vom Bot vor Version 0.2: Der alte Token (`/data/matrix-store/access_token`) wird beim ersten Start in die
+`credentials.json` der Library übernommen. Das Gerät und die E2EE-Schlüssel bleiben gleich.
