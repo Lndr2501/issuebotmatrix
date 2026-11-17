@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from typing import Any, Optional
 
@@ -20,8 +21,11 @@ from .store import Store
 
 log = logging.getLogger("issuebot")
 
-PROFILE = dict(about="Legt GitHub-Issues an: !issue Titel | Beschreibung",
-               banner=("#f97316", "#7a5cff", 135), accent="#f97316")
+# Profilbild und Farben kommen vom Logo (branding/build.py). Die Library laedt das Bild beim Start hoch,
+# aber nur, wenn sich die Datei geaendert hat.
+AVATAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "avatar.png")
+PROFILE = dict(about="Legt GitHub-Issues an: !issue Titel | Beschreibung", avatar=AVATAR,
+               banner=("#34D6A0", "#047A55", 135), accent="#0F9D6E")
 
 HELP_WORDS = ("", "help", "hilfe", "?")
 

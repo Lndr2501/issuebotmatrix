@@ -8,6 +8,9 @@ COPY issuebot ./issuebot
 RUN pip install --no-cache-dir --prefix=/install .
 
 FROM python:3.12-slim
+LABEL org.opencontainers.image.title="IssueBotMatrix" \
+      org.opencontainers.image.source="https://github.com/Lndr2501/issuebotmatrix" \
+      org.opencontainers.image.description="Matrix-Bot: !issue Titel | Beschreibung legt ein GitHub-Issue an"
 COPY --from=build /install /usr/local
 RUN useradd --create-home --uid 10001 issuebot \
     && mkdir -p /data && chown issuebot:issuebot /data

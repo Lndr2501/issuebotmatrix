@@ -25,3 +25,10 @@ def test_nothing_to_adopt(tmp_path):
     cfg = Config(**CFG, data_dir=str(tmp_path))
     os.makedirs(cfg.store_path)
     assert not adopt_legacy_token(cfg)
+
+
+def test_logo_is_the_bot_avatar():
+    from issuebot.bot import AVATAR, PROFILE
+    assert PROFILE["avatar"] == AVATAR
+    with open(AVATAR, "rb") as fh:
+        assert fh.read(8) == b"\x89PNG\r\n\x1a\n"
