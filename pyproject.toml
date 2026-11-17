@@ -1,11 +1,11 @@
 [project]
 name = "issuebotmatrix"
 version = "0.2.0"
-description = "Matrix-Issue-Bot: !issue Titel | Beschreibung legt ein GitHub-Issue an (mit Diddy-Karten)"
+description = "Matrix-Issue-Bot: !issue Titel | Beschreibung legt ein GitHub-Issue an (mit diddy.git@main-Karten)"
 requires-python = ">=3.11"
 dependencies = [
-    # Bot-Library (Matrix, E2EE, Diddy-Karten). Nach dem Merge von Diddy-PR #230 auf @main stellen.
-    "diddy-bot @ git+https://github.com/Lndr2501/diddy.git@feat/bot-sdk#subdirectory=sdk/python",
+    # Bot-Library (Matrix, E2EE, diddy.git@main-Karten). Nach dem Merge von Diddy-PR #230 auf @main stellen.
+    "diddy-bot @ git+https://github.com/Lndr2501/diddy.git@main#subdirectory=sdk/python",
     "aiohttp>=3.9",
 ]
 
