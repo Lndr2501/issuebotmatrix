@@ -1,4 +1,8 @@
-# IssueBotMatrix
+<p align="center">
+  <img src="branding/logo/issuebot-green-rounded.svg" width="128" alt="IssueBot-Logo">
+</p>
+
+<h1 align="center">IssueBotMatrix</h1>
 
 Ein Matrix-Bot, der aus einer Chat-Nachricht ein **GitHub-Issue** macht. Passt zu
 [Diddy](https://github.com/Lndr2501/diddy): Antworten kommen als Diddy-Karten, die Befehle
@@ -102,3 +106,7 @@ Synapse: `DIDDY_TEST_HOMESERVER=http://127.0.0.1:8008 pytest tests/test_integrat
 
 Update vom Bot vor Version 0.2: Der alte Token (`/data/matrix-store/access_token`) wird beim ersten Start in die
 `credentials.json` der Library übernommen. Das Gerät und die E2EE-Schlüssel bleiben gleich.
+
+## Logo
+
+Zeichen, Farbtöne und Bauanleitung stehen in [`branding/`](branding/README.md). Der Bot setzt sein Matrix-Profilbild beim Start selbst.
