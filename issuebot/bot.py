@@ -58,7 +58,7 @@ class IssueBot:
             cfg.homeserver, cfg.user, password=cfg.password, access_token=cfg.token,
             device_id=cfg.device_id, store_path=cfg.store_path, prefix=cfg.prefix,
             encryption=cfg.encryption_enabled, auto_join=invite_filter(cfg),
-            help_note=self._help_note(), **PROFILE)
+            help_note=self._help_note(), help_command=False, **PROFILE)
         self._tasks: set[asyncio.Task] = set()
         self._register()
         if cfg.rooms:
@@ -113,7 +113,7 @@ class IssueBot:
                         aliases=aliases, group="Issue melden")(make(kind))
 
         @bot.command("issuebot", desc="Hilfe zum Issue-Bot", aliases=("issuehilfe", "issuehelp"),
-                     group="Hilfe", hidden=True)
+                     group="Hilfe")
         async def issuebot(ctx: Context) -> None:
             await ctx.reply(bot.registry.help_card(bot.help_note))
 

@@ -75,10 +75,17 @@ async def test_other_messages_are_ignored(make):
 
 async def test_help(make):
     app, chat, g = make()
-    for text in ("!issue", "!issue hilfe", "!issuebot", "!help"):
+    for text in ("!issue", "!issue hilfe", "!issuebot"):
         [m] = await chat.say(text)
         assert m.card["kind"] == "help", text
     assert g.calls == []
+
+
+async def test_generic_help_is_left_to_other_bots(make):
+    """`!hilfe` / `!help` belong to the other bots in a shared room: the issue bot stays quiet."""
+    app, chat, g = make()
+    for text in ("!hilfe", "!help"):
+        assert await chat.say(text) == [], text
 
 
 async def test_rate_limit(make):
@@ -139,7 +146,7 @@ async def test_commands_for_diddy(make):
     app, chat, g = make()
     await chat.start()
     names = [c["name"] for c in chat.commands()["commands"]]
-    assert {"issue", "bug", "idee"} <= set(names) and "issuebot" not in names
+    assert {"issue", "bug", "idee", "issuebot"} <= set(names) and "hilfe" not in names and "help" not in names
     assert chat.profile()["about"].startswith("Legt GitHub-Issues an")
 
 
