@@ -180,4 +180,4 @@ async def test_bad_stream_never_returns_partial_result(aiohttp_server, mode):
     server = await aiohttp_server(app)
     with pytest.raises(AIError):
         await ChatAI(str(server.make_url("/v1")), "m").chat_json("s", "u")
-    assert len(seen) == 2  # genau ein Wiederholungsversuch, keine Endlosschleife
+    assert len(seen) == 3  # zwei Wiederholungsversuche, keine Endlosschleife

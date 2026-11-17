@@ -244,3 +244,9 @@ async def test_edited_text_during_research_is_kept():
     gh = CommentedGH(edit_body=True)
     assert await Researcher(ai, gh).run("Lndr/diddy", 5) is None
     assert gh.updates == []
+
+
+def test_parse_json_reply_repairs_trailing_commas():
+    assert parse_json_reply('{"a": [1, 2,], "b": {"c": 3,},}') == {"a": [1, 2], "b": {"c": 3}}
+    with pytest.raises(AIError):
+        parse_json_reply('{"a": 1 "b": 2}')

@@ -56,6 +56,12 @@ class ChatAI:
             raise
         except AIError as exc:
             log.info("KI-Antwort unbrauchbar (%s), zweiter Versuch", str(exc)[:120])
+        try:
+            return await self._chat_json(system, user, reasoning, json_mode=False)
+        except AIRequestError:
+            raise
+        except AIError as exc:
+            log.info("KI-Antwort wieder unbrauchbar (%s), letzter Versuch", str(exc)[:120])
             return await self._chat_json(system, user, reasoning, json_mode=False)
 
     async def _chat_json(self, system: str, user: str, reasoning: Optional[str],
@@ -155,10 +161,15 @@ def parse_json_reply(text: str) -> dict:
     start, end = text.find("{"), text.rfind("}")
     if start < 0 or end <= start:
         raise AIError("KI-Antwort enthaelt kein JSON")
+    body = text[start:end + 1]
     try:
-        data = json.loads(text[start:end + 1])
+        data = json.loads(body)
     except json.JSONDecodeError as exc:
-        raise AIError(f"KI-Antwort ist kein gueltiges JSON: {exc}") from exc
+        # Haeufigster Modellfehler: ein Komma vor der schliessenden Klammer.
+        try:
+            data = json.loads(re.sub(r",(\s*[}\]])", r"\1", body))
+        except json.JSONDecodeError:
+            raise AIError(f"KI-Antwort ist kein gueltiges JSON: {exc}") from exc
     if not isinstance(data, dict):
         raise AIError("KI-Antwort ist kein JSON-Objekt")
     return data
